@@ -172,6 +172,7 @@ local Theme = {
                 Button = Color3.fromRGB(75, 78, 95),
                 Scrollbar = Color3.fromRGB(55, 58, 72),
                 Cursor = Color3.fromRGB(248, 248, 242),
+                White = Color3.fromRGB(255, 255, 255),
         },
         Fonts = {
                 Main = Enum.Font.Code,
