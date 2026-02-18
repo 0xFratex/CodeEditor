@@ -5,7 +5,6 @@
 	This is the main entry point for the Dracula Code Editor.
 	
 	Repository: https://github.com/0xFratex/CodeEditor
-	Raw URL: https://raw.githubusercontent.com/0xFratex/CodeEditor/main/
 	
 	Usage:
 		loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/Loader.lua"))()
@@ -13,26 +12,25 @@
 
 -- Configuration
 local GITHUB_RAW = "https://raw.githubusercontent.com/0xFratex/CodeEditor/main/"
-local FILES = {
-	"DraculaTheme.lua",
-	"FileSystem.lua",
-	"Intellisense.lua",
-	"EditorGUI.lua",
-	"CodeRunner.lua",
-	"SyntaxHighlighter.lua",
-	"EditorUtilities.lua",
-	"DraculaEditor.lua",
-}
 
 -- Services
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
--- Cache for loaded modules
+-- Wait for player
+local player = Players.LocalPlayer
+if not player then
+	Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+	player = Players.LocalPlayer
+end
+
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Module cache
 local ModuleCache = {}
 
 -- Safe HTTP GET with retry
-local function safeHttpGet(url, retries)
+local function httpGet(url, retries)
 	retries = retries or 3
 	
 	for i = 1, retries do
@@ -40,7 +38,7 @@ local function safeHttpGet(url, retries)
 			return game:HttpGet(url)
 		end)
 		
-		if success then
+		if success and result then
 			return result
 		end
 		
@@ -53,114 +51,78 @@ local function safeHttpGet(url, retries)
 end
 
 -- Load module from GitHub
-local function loadModule(moduleName)
-	-- Check cache first
+local function loadFromGitHub(moduleName)
+	-- Check cache
 	if ModuleCache[moduleName] then
 		return ModuleCache[moduleName]
 	end
 	
 	local url = GITHUB_RAW .. moduleName
-	local source = safeHttpGet(url)
+	print("🦇 Loading:", moduleName)
+	
+	local source = httpGet(url)
 	
 	if not source then
 		error("Failed to load module: " .. moduleName)
 	end
 	
 	local success, result = pcall(function()
-		local fn = loadstring(source)
+		local fn, err = loadstring(source)
 		if not fn then
-			error("Failed to compile module: " .. moduleName)
+			error("Failed to compile " .. moduleName .. ": " .. tostring(err))
 		end
 		return fn()
 	end)
 	
 	if not success then
-		error("Failed to execute module: " .. moduleName .. " - " .. tostring(result))
+		error("Failed to execute " .. moduleName .. ": " .. tostring(result))
 	end
 	
 	ModuleCache[moduleName] = result
 	return result
 end
 
--- Create a virtual require function
-local function createRequire()
-	local modules = {}
-	
-	-- Preload all modules
-	for _, moduleName in ipairs(FILES) do
-		modules[moduleName] = loadModule(moduleName)
-	end
-	
-	return function(modulePath)
-		-- Extract module name from path
-		local moduleName = modulePath:match("([^/]+)%.lua$") or modulePath
-		
-		-- Check if module name ends with .lua, if not add it
-		if not moduleName:match("%.lua$") then
-			moduleName = moduleName .. ".lua"
-		end
-		
-		if modules[moduleName] then
-			return modules[moduleName]
-		end
-		
-		-- Try to load dynamically
-		return loadModule(moduleName)
-	end
-end
+-- ============================================
+-- Load all modules in correct order
+-- ============================================
 
--- Main loader function
-local function main()
-	-- Wait for game to load
-	local player = Players.LocalPlayer
-	if not player then
-		Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-		player = Players.LocalPlayer
-	end
-	
-	local playerGui = player:WaitForChild("PlayerGui")
-	task.wait(0.5)
-	
-	print("🦇 Dracula Code Editor - Loading from GitHub...")
-	
-	-- Create require function and set up module environment
-	local require = createRequire()
-	
-	-- Store require globally for modules to use
-	_G.DraculaRequire = require
-	
-	-- Load and initialize the editor
-	local DraculaEditor = require("DraculaEditor.lua")
-	
-	-- Override the default require in the editor to use our loader
-	local originalRequire = require
-	
-	-- Initialize the editor
-	DraculaEditor.Initialize(playerGui)
-	
-	print("🦇 Dracula Code Editor loaded successfully!")
-	print("   Press F8 to toggle the editor")
-	
-	return DraculaEditor
-end
+print("🦇 Dracula Code Editor - Loading from GitHub...")
 
--- Run the loader
-local success, result = pcall(main)
+-- 1. Load Theme first (no dependencies)
+local Theme = loadFromGitHub("DraculaTheme.lua")
 
-if not success then
-	warn("🦇 Failed to load Dracula Code Editor:", result)
-	
-	-- Try to load the quick start version as fallback
-	local quickStartUrl = GITHUB_RAW .. "QuickStart.lua"
-	local quickStartSource = safeHttpGet(quickStartUrl)
-	
-	if quickStartSource then
-		print("🦇 Loading fallback QuickStart version...")
-		local fn = loadstring(quickStartSource)
-		if fn then
-			fn()
-		end
-	end
-else
-	return result
-end
+-- 2. Load FileSystem (no dependencies)
+local FileSystem = loadFromGitHub("FileSystem.lua")
+
+-- 3. Load SyntaxHighlighter (depends on Theme)
+_G.DraculaTheme = Theme
+local SyntaxHighlighter = loadFromGitHub("SyntaxHighlighter.lua")
+
+-- 4. Load Intellisense (no dependencies)
+local Intellisense = loadFromGitHub("Intellisense.lua")
+
+-- 5. Load CodeRunner (no dependencies)
+local CodeRunner = loadFromGitHub("CodeRunner.lua")
+
+-- 6. Load EditorGUI (depends on Theme)
+local EditorGUI = loadFromGitHub("EditorGUI.lua")
+
+-- 7. Load EditorUtilities (depends on Theme)
+local EditorUtilities = loadFromGitHub("EditorUtilities.lua")
+
+-- 8. Load main DraculaEditor (depends on all above)
+local DraculaEditor = loadFromGitHub("DraculaEditor.lua")
+
+-- ============================================
+-- Initialize
+-- ============================================
+
+task.wait(0.5)
+
+-- Initialize the editor
+DraculaEditor.Initialize(playerGui)
+
+print("🦇 Dracula Code Editor loaded successfully!")
+print("   Press F8 to toggle the editor")
+
+return DraculaEditor
