@@ -95,7 +95,6 @@ function EditorGUI.CreateMainFrame(parent)
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "DraculaEditorGui"
         screenGui.ResetOnSpawn = false
-        screenGui.ZIndexMode = Enum.ZIndexMode.Sibling
         screenGui.Parent = parent
         
         local frame = Instance.new("Frame")

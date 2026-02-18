@@ -181,7 +181,6 @@ local function createEditor()
         local screenGui = Instance.new("ScreenGui")
         screenGui.Name = "DraculaEditorGui"
         screenGui.ResetOnSpawn = false
-        screenGui.ZIndexMode = Enum.ZIndexMode.Sibling
         screenGui.Parent = playerGui
         
         -- Main Frame
