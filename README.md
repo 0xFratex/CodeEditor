@@ -1,6 +1,6 @@
 # 🦇 Dracula Code Editor for Roblox
 
-A sophisticated, feature-rich code editor built entirely within Roblox, featuring a beautiful dark Dracula theme, smart intellisense that adapts to your game environment, local file persistence, and code execution capabilities.
+A sophisticated, feature-rich code editor built entirely within Roblox, featuring a beautiful dark Dracula theme, smart intellisense, syntax highlighting, error detection, and local file persistence.
 
 **All modules are loaded via `loadstring(game:HttpGet())` from GitHub raw URLs - no local file installation needed!**
 
@@ -16,15 +16,16 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/m
 loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/QuickStart.lua"))()
 ```
 
-**One-line setup:** Just paste into a LocalScript in `StarterPlayerScripts` and press **F8** to toggle!
+**One-line setup:** Just paste into your executor and press **F8** to toggle!
 
 ## ✨ Features
 
 ### 🎨 Beautiful Dracula Theme
 - Carefully crafted dark color scheme
-- Syntax highlighting for Lua code
+- Real-time syntax highlighting with RichText
 - Smooth animations and transitions
 - Professional UI with proper spacing
+- Visible cursor with blink animation
 
 ### 🧠 Smart Intellisense
 
@@ -34,7 +35,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/m
 - String, Table, Math, OS, and Task library methods
 - Roblox globals (`game`, `workspace`, etc.)
 
-#### Environment-Aware Completions
+#### Context-Aware Completions
 ```lua
 -- Type: game.
 -- Shows: Players, Lighting, ReplicatedStorage, etc.
@@ -50,22 +51,44 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/m
 --   Part [0] (Class: Part)
 --   Part1 [1] (Class: Part)  
 --   PistolGun [2] (Class: Model)
-
--- Clicking "Part1" inserts:
--- game.Workspace:GetChildren()[1]
 ```
+
+#### Smart Comment Detection
+- Intellisense won't trigger inside comments (`--`)
+- Intellisense won't trigger inside strings
+
+### 🎯 Syntax Highlighting
+- Keywords (pink)
+- Strings (yellow)
+- Numbers (purple)
+- Comments (gray)
+- Built-in functions (cyan)
+- Real-time highlighting as you type
+
+### ⚠️ Error Detection
+- Real-time syntax error detection
+- Unclosed bracket detection
+- Error line display
+- Toggleable in settings
 
 ### 📁 File Management
 - Create, open, save, and delete files
 - Folder organization
 - Auto-save functionality
-- Persistent storage using DataStore
+- Persistent storage using executor file functions
+- File browser sidebar
+
+### ⚙️ Configuration
+- Font size adjustment
+- Auto-save toggle
+- Error detection toggle
+- Settings persist locally
+- Uses `writefile`/`readfile` functions
 
 ### ▶️ Code Execution
 - Run Lua code directly in the editor
 - Output capture (print, warn, error)
 - Timeout protection
-- Sandbox security
 
 ## 🎹 Keyboard Shortcuts
 
@@ -74,8 +97,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/m
 | F8 | Toggle Editor |
 | F5 | Run Code |
 | Ctrl+S | Save File |
-| Ctrl+N | New File |
+| Ctrl+O | Toggle File Browser |
 | Tab/Enter | Accept Suggestion |
+| ↑/↓ | Navigate Suggestions |
 | Escape | Close Intellisense |
 
 ## 📦 How It Works
@@ -91,14 +115,29 @@ local function loadFromGitHub(moduleName)
 end
 ```
 
-Modules are cached and shared via `_G` for cross-module communication:
-- `_G.DraculaTheme` - Theme colors and settings
-- `_G.FileSystem` - File management
-- `_G.Intellisense` - Code completion
-- `_G.EditorGUI` - GUI components
-- `_G.CodeRunner` - Code execution
-- `_G.SyntaxHighlighter` - Syntax highlighting
-- `_G.EditorUtilities` - Helper functions
+## 📁 File System Support
+
+The editor uses built-in executor functions for file persistence:
+
+| Function | Purpose |
+|----------|---------|
+| `writefile(path, content)` | Save file |
+| `readfile(path)` | Load file |
+| `listfiles(folder)` | List files in folder |
+| `isfile(path)` | Check if file exists |
+| `isfolder(path)` | Check if folder exists |
+| `makefolder(path)` | Create folder |
+| `delfile(path)` | Delete file |
+| `delfolder(path)` | Delete folder |
+
+**Folder Structure:**
+```
+DraculaEditor/
+├── Config/
+│   └── settings.json
+└── Scripts/
+    └── your_scripts.lua
+```
 
 ## 📖 Module Structure
 
@@ -126,6 +165,18 @@ Use these URLs with `loadstring(game:HttpGet())`:
 | Loader | `https://raw.githubusercontent.com/0xFratex/CodeEditor/main/Loader.lua` |
 | QuickStart | `https://raw.githubusercontent.com/0xFratex/CodeEditor/main/QuickStart.lua` |
 
+## 🆕 Recent Updates
+
+### v2.0.0
+- ✅ Added visible cursor with blink animation
+- ✅ Added configuration page with local saving
+- ✅ Fixed intellisense not triggering in comments
+- ✅ Fixed syntax highlighting for partial matches
+- ✅ Added real-time error detection
+- ✅ Added file browser with folder support
+- ✅ Added script loading/saving functionality
+- ✅ Improved UI layout and styling
+
 ## 🔮 Coming Soon
 
 - [ ] Find and Replace
@@ -133,6 +184,7 @@ Use these URLs with `loadstring(game:HttpGet())`:
 - [ ] Multiple selection
 - [ ] Custom themes
 - [ ] Plugin system
+- [ ] Multi-file tabs
 
 ## 📝 License
 
