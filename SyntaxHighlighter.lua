@@ -1,12 +1,14 @@
 --[[
 	Dracula Syntax Highlighter
 	Provides syntax highlighting for Lua code with Dracula theme colors
+	
+	Uses _G.DraculaTheme (loaded by Loader.lua)
 ]]
 
 local SyntaxHighlighter = {}
 
--- Theme
-local Theme = require(script.Parent:WaitForChild("DraculaTheme"))
+-- Get Theme from _G (loaded by Loader.lua)
+local Theme = _G.DraculaTheme
 
 -- Token types
 local TokenType = {
@@ -99,10 +101,6 @@ function SyntaxHighlighter.Tokenize(code)
 		return char
 	end
 	
-	local function match(pattern)
-		return string.match(string.sub(code, pos), pattern)
-	end
-	
 	while pos <= len do
 		local startPos = pos
 		local char = peek()
@@ -156,7 +154,7 @@ function SyntaxHighlighter.Tokenize(code)
 				
 				-- Read until closing bracket
 				while pos <= len do
-					if peek() == "]" and peek(1) == "[" then
+					if peek() == "]" then
 						-- Check if it matches
 						local nextEquals = ""
 						local tempPos = pos + 1
@@ -250,10 +248,8 @@ function SyntaxHighlighter.Tokenize(code)
 				table.insert(tokens, Token.new(TokenType.Builtin, id, startPos, pos - 1))
 			else
 				-- Check if it's a function call
-				local nextNonSpace = ""
 				local tempPos = pos
 				while tempPos <= len and string.sub(code, tempPos, tempPos):match("%s") do
-					nextNonSpace = nextNonSpace .. string.sub(code, tempPos, tempPos)
 					tempPos = tempPos + 1
 				end
 				if string.sub(code, tempPos, tempPos) == "(" then
@@ -369,97 +365,6 @@ function SyntaxHighlighter.HighlightWithLineNumbers(code)
 	end
 	
 	return result
-end
-
--- Find matching bracket
-function SyntaxHighlighter.FindMatchingBracket(code, position)
-	local openBrackets = { ["("] = ")", ["["] = "]", ["{"] = "}" }
-	local closeBrackets = { [")"] = "(", ["]"] = "[", ["}"] = "{" }
-	
-	local char = string.sub(code, position, position)
-	
-	if openBrackets[char] then
-		-- Find closing bracket
-		local target = openBrackets[char]
-		local count = 1
-		local pos = position + 1
-		
-		while pos <= #code and count > 0 do
-			local c = string.sub(code, pos, pos)
-			if c == char then
-				count = count + 1
-			elseif c == target then
-				count = count - 1
-			end
-			pos = pos + 1
-		end
-		
-		if count == 0 then
-			return pos - 1
-		end
-	
-	elseif closeBrackets[char] then
-		-- Find opening bracket
-		local target = closeBrackets[char]
-		local count = 1
-		local pos = position - 1
-		
-		while pos >= 1 and count > 0 do
-			local c = string.sub(code, pos, pos)
-			if c == char then
-				count = count + 1
-			elseif c == target then
-				count = count - 1
-			end
-			pos = pos - 1
-		end
-		
-		if count == 0 then
-			return pos + 1
-		end
-	end
-	
-	return nil
-end
-
--- Auto-indent code
-function SyntaxHighlighter.AutoIndent(code)
-	local lines = {}
-	local indentLevel = 0
-	local tabWidth = 4
-	
-	for line in string.gmatch(code .. "\n", "([^\n]*)\n") do
-		-- Count indent at start
-		local currentIndent = 0
-		local trimmed = string.gsub(line, "^(%s*)", function(s)
-			currentIndent = math.floor(#s / tabWidth)
-			return ""
-		end)
-		
-		-- Decrease indent for closing keywords
-		if string.match(trimmed, "^end") or 
-		   string.match(trimmed, "^else") or 
-		   string.match(trimmed, "^elseif") or 
-		   string.match(trimmed, "^until") or
-		   string.match(trimmed, "^}") then
-			indentLevel = math.max(0, indentLevel - 1)
-		end
-		
-		-- Add proper indentation
-		local newLine = string.rep("    ", indentLevel) .. trimmed
-		table.insert(lines, newLine)
-		
-		-- Increase indent for opening keywords
-		if string.match(trimmed, "then%s*$") or 
-		   string.match(trimmed, "do%s*$") or 
-		   string.match(trimmed, "else%s*$") or 
-		   string.match(trimmed, "function%s*%(") or
-		   string.match(trimmed, "{%s*$") then
-			indentLevel = indentLevel + 1
-		end
-	end
-	
-	return table.concat(lines, "\n")
 end
 
 return SyntaxHighlighter
