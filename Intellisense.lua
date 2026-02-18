@@ -182,7 +182,7 @@ function Intellisense.ScanInstanceChildren(instance, maxDepth, currentDepth)
 	return children
 end
 
--- Parse code context - FIXED PATTERNS
+-- Parse code context
 function Intellisense.ParseContext(code, cursorPosition)
 	local textBeforeCursor = string.sub(code, 1, cursorPosition)
 	
@@ -195,8 +195,7 @@ function Intellisense.ParseContext(code, cursorPosition)
 		MethodName = "",
 	}
 	
-	-- Check for method call: expr:method( -> GetChildren()
-	-- Fixed pattern: use %] properly inside []
+	-- Check for method call: expr:method(
 	local methodMatch = string.match(textBeforeCursor, "([%w%.%_:]+):(%w+)%(%s*$")
 	if methodMatch then
 		context.Type = "MethodResult"
@@ -225,20 +224,36 @@ function Intellisense.ParseContext(code, cursorPosition)
 		return context
 	end
 	
-	-- Check for index: expr[""] or expr['']
-	local indexMatch = string.match(textBeforeCursor, "([%w%.%_:]+)%[[\"']([%w_]*)$")
+	-- Check for index: expr[""] - using double quotes only to avoid escape issues
+	local indexMatch = string.match(textBeforeCursor, '([%w%.%_:]+)%["([%w_]*)$')
 	if indexMatch then
 		context.Type = "Index"
 		context.BaseExpression = indexMatch
-		context.Prefix = string.match(textBeforeCursor, "%[[\"']([%w_]*)$") or ""
+		context.Prefix = string.match(textBeforeCursor, '%["([%w_]*)$') or ""
+		return context
+	end
+	
+	-- Check for single quote index
+	local indexMatch2 = string.match(textBeforeCursor, "([%w%.%_:]+)%'([%w_]*)$")
+	if indexMatch2 then
+		context.Type = "Index"
+		context.BaseExpression = indexMatch2
+		context.Prefix = string.match(textBeforeCursor, "%'([%w_]*)$") or ""
 		return context
 	end
 	
 	-- Check for string literal
-	local stringMatch = string.match(textBeforeCursor, "[\"']([%w_]*)$")
+	local stringMatch = string.match(textBeforeCursor, '"([%w_]*)$')
 	if stringMatch then
 		context.Type = "StringIndex"
 		context.Prefix = stringMatch
+		return context
+	end
+	
+	local stringMatch2 = string.match(textBeforeCursor, "'([%w_]*)$")
+	if stringMatch2 then
+		context.Type = "StringIndex"
+		context.Prefix = stringMatch2
 		return context
 	end
 	
@@ -254,6 +269,10 @@ end
 
 -- Evaluate expression
 function Intellisense.EvaluateExpression(expression)
+	if not expression or expression == "" then
+		return nil
+	end
+	
 	if expression == "game" then
 		return game
 	elseif expression == "workspace" then
@@ -271,11 +290,20 @@ function Intellisense.EvaluateExpression(expression)
 		if success then return service end
 	end
 	
-	-- game:GetService("ServiceName")
-	local getServiceMatch = string.match(expression, 'game:GetService%([\"\''](%w+)[\"\'']%)')
+	-- game:GetService("ServiceName") - with double quotes
+	local getServiceMatch = string.match(expression, 'game:GetService%("(%w+)"%)')
 	if getServiceMatch then
 		local success, service = pcall(function()
 			return game:GetService(getServiceMatch)
+		end)
+		if success then return service end
+	end
+	
+	-- game:GetService('ServiceName') - with single quotes
+	local getServiceMatch2 = string.match(expression, "game:GetService%('(%w+)'%)")
+	if getServiceMatch2 then
+		local success, service = pcall(function()
+			return game:GetService(getServiceMatch2)
 		end)
 		if success then return service end
 	end
