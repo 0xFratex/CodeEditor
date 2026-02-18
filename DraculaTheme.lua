@@ -120,18 +120,6 @@ DraculaTheme.SyntaxRules = {
 	},
 }
 
--- Create gradient for buttons
-function DraculaTheme.CreateButtonGradient(parent, isHover)
-	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, isHover and DraculaTheme.Colors.ButtonHover or DraculaTheme.Colors.Button),
-		ColorSequenceKeypoint.new(1, DraculaTheme.Colors.BackgroundLight)
-	})
-	gradient.Rotation = 45
-	gradient.Parent = parent
-	return gradient
-end
-
 -- Create corner radius
 function DraculaTheme.CreateCorner(parent, radius)
 	radius = radius or 4
