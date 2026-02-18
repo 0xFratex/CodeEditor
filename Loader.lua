@@ -801,13 +801,24 @@ local State = {
         currentFilePath = nil,
 }
 
--- Character width calculation for cursor
+-- Text bounds calculation using TextService
+local TextService = game:GetService("TextService")
+
+local function getTextBounds(text, fontSize)
+        local bounds = TextService:GetTextSize(text, fontSize, Enum.Font.Code, Vector2.new(10000, 10000))
+        return bounds.X, bounds.Y
+end
+
 local function getCharWidth()
-        return Config.fontSize * 0.6
+        -- Measure actual character width for Code font
+        local width = TextService:GetTextSize("W", Config.fontSize, Enum.Font.Code, Vector2.new(100, 100)).X
+        return width
 end
 
 local function getLineHeight()
-        return Config.fontSize + 2
+        -- Measure actual line height for Code font
+        local height = TextService:GetTextSize("W", Config.fontSize, Enum.Font.Code, Vector2.new(100, 100)).Y
+        return height
 end
 
 -- Update line numbers
@@ -835,21 +846,25 @@ local function updateCursor()
         local cursorPos = UI.codeInput.CursorPosition
         if cursorPos <= 0 then cursorPos = 1 end
         
+        -- Find line number and column
         local lineNum = 1
-        local colNum = 1
+        local lineStart = 1
         for i = 1, math.min(cursorPos - 1, #text) do
                 if text:sub(i, i) == "\n" then
                         lineNum = lineNum + 1
-                        colNum = 1
-                else
-                        colNum = colNum + 1
+                        lineStart = i + 1
                 end
         end
         
-        local charWidth = getCharWidth()
+        -- Get text before cursor on current line
+        local textBeforeCursor = text:sub(lineStart, cursorPos - 1)
+        
+        -- Measure actual text width for X position
+        local textWidth = TextService:GetTextSize(textBeforeCursor, Config.fontSize, Enum.Font.Code, Vector2.new(10000, 100)).X
         local lineHeight = getLineHeight()
         
-        local x = (colNum - 1) * charWidth + 44
+        -- Position cursor (44 is the left offset for code area)
+        local x = textWidth + 44
         local y = (lineNum - 1) * lineHeight
         
         UI.cursor.Position = UDim2.new(0, x, 0, y)
