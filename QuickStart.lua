@@ -340,11 +340,51 @@ local IntellisenseData = {
                 "if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while", "continue"},
         Builtins = {"print", "warn", "error", "assert", "type", "typeof", "tostring", "tonumber",
                 "pairs", "ipairs", "next", "select", "pcall", "xpcall", "tick", "time", "wait", "spawn", "delay",
-                "Instance", "Color3", "Vector3", "Vector2", "CFrame", "UDim", "UDim2", "Enum", "task"},
+                "Instance", "Color3", "Vector3", "Vector2", "CFrame", "UDim", "UDim2", "Enum", "task",
+                "string", "table", "math", "os", "coroutine", "debug", "loadstring", "newproxy"},
         Services = {"Players", "Lighting", "ReplicatedStorage", "ReplicatedFirst", "ServerStorage",
                 "ServerScriptService", "StarterGui", "StarterPack", "StarterPlayer", "TweenService",
-                "UserInputService", "RunService", "HttpService", "DataStoreService", "TeleportService"},
-        Methods = {"Clone", "Destroy", "FindFirstChild", "GetChildren", "GetDescendants", "IsA", "WaitForChild"},
+                "UserInputService", "RunService", "HttpService", "DataStoreService", "TeleportService",
+                "Workspace", "SoundService", "Chat", "Teams", "MarketplaceService", "BadgeService",
+                "GamePassService", "PointsService", "AnalyticsService", "LocalizationService"},
+        Methods = {"Clone", "Destroy", "FindFirstChild", "FindFirstChildOfClass", "GetChildren", "GetDescendants",
+                "IsA", "WaitForChild", "ClearAllChildren", "GetAttribute", "SetAttribute", "GetAttributes",
+                "GetPropertyChangedSignal", "FindFirstAncestor", "FindFirstDescendant"},
+        -- Common Instance Properties
+        Properties = {
+                "Name", "ClassName", "Parent", "Archivable", 
+                -- Part properties
+                "Position", "Rotation", "Size", "Color", "Transparency", "Anchored", "CanCollide",
+                "Massless", "UsePartColor", "Material", "Reflectance", "CastShadow",
+                -- GuiObject properties
+                "Visible", "Enabled", "Active", "BackgroundColor3", "BackgroundTransparency",
+                "BorderSizePixel", "BorderColor3", "Position", "Size", "AnchorPoint", "Rotation",
+                "ClipsDescendants", "Selectable", "SelectionImageObject", "ZIndex",
+                -- TextBox properties
+                "Text", "TextColor3", "TextSize", "Font", "TextScaled", "TextWrapped", "TextXAlignment",
+                "TextYAlignment", "TextTransparency", "TextStrokeColor3", "TextStrokeTransparency",
+                "PlaceholderText", "PlaceholderColor3", "MultiLine", "ClearTextOnFocus", "CursorPosition",
+                -- Frame properties
+                "ScrollingEnabled", "CanvasSize", "ScrollBarThickness", "ScrollBarImageColor3",
+                -- TextButton properties
+                "AutoButtonColor",
+                -- ImageLabel properties
+                "Image", "ImageColor3", "ImageTransparency", "ImageRectOffset", "ImageRectSize",
+                -- Special
+                "Value", "MinValue", "MaxValue", "Volume", "Pitch", "Looped", "Playing", "SoundId",
+                "TimePosition", "RollOffMode", "RollOffMinDistance", "RollOffMaxDistance",
+        },
+        -- Common attribute names for suggestions
+        CommonAttributes = {
+                "Health", "MaxHealth", "Speed", "JumpPower", "Damage", "Cooldown", "Duration",
+                "Level", "XP", "Gold", "Score", "Kills", "Deaths", "Wins", "Losses",
+                "Team", "Class", "Type", "Category", "Tag", "Id", "OwnerId", "CreatorId",
+                "Enabled", "Active", "Visible", "Locked", "Hidden", "Frozen", "Invincible",
+                "Color", "Size", "Scale", "Offset", "Rotation", "Angle",
+                "StartTime", "EndTime", "CreatedAt", "UpdatedAt", "ExpiresAt",
+                "Ultimate", "Ultra", "Unique", "Uncommon", "Rare", "Epic", "Legendary", "Mythic",
+                "Premium", "VIP", "Admin", "Moderator", "Developer", "Beta",
+        },
 }
 
 local function isInComment(text, cursorPos)
@@ -387,28 +427,132 @@ local function getCompletions(text, cursorPos)
         local prefix = text:sub(wordStart, cursorPos - 1):lower()
         local before = text:sub(1, cursorPos - 1)
         
-        -- Context-based completions
+        -- GetAttribute/SetAttribute suggestions (string parameter)
+        local attrMatch = before:match(':GetAttribute%("([^"]*)$') or before:match(':SetAttribute%("([^"]*)$')
+        if attrMatch then
+                local expr = before:match('(.+):GetAttribute%("') or before:match('(.+):SetAttribute%("')
+                local instance = nil
+                if expr == "game" then instance = game
+                elseif expr == "workspace" then instance = workspace
+                elseif expr and expr:match("^game%.(%w+)$") then
+                        pcall(function() instance = game:GetService(expr:match("^game%.(%w+)$")) end)
+                end
+                
+                -- Get actual attributes if available
+                if instance then
+                        local success, attrs = pcall(function() return instance:GetAttributes() end)
+                        if success and attrs then
+                                for attrName, _ in pairs(attrs) do
+                                        if attrName:lower():find(prefix, 1, true) or prefix == "" then
+                                                table.insert(completions, {
+                                                        name = attrName,
+                                                        kind = "Attribute",
+                                                        insertText = attrName .. '")',
+                                                        detail = "Attribute"
+                                                })
+                                        end
+                                end
+                        end
+                end
+                
+                -- Also suggest common attribute names
+                for _, attr in ipairs(IntellisenseData.CommonAttributes) do
+                        if attr:lower():find(prefix, 1, true) or prefix == "" then
+                                table.insert(completions, {
+                                        name = attr,
+                                        kind = "Attribute",
+                                        insertText = attr .. '")',
+                                        detail = "Common"
+                                })
+                        end
+                end
+                return completions, wordStart
+        end
+        
+        -- String parameter detection (for any method with string param)
+        local stringParamMatch = before:match(':%w+%("([^"]*)$')
+        if stringParamMatch then
+                -- Could be FindFirstChild, WaitForChild, etc.
+                local method = before:match(':([%w_]+)%("')
+                if method == "FindFirstChild" or method == "WaitForChild" or method == "FindFirstChildOfClass" then
+                        local expr = before:match('(.+):' .. method .. '%("')
+                        local instance = nil
+                        if expr == "game" then instance = game
+                        elseif expr == "workspace" then instance = workspace
+                        elseif expr and expr:match("^game%.(%w+)$") then
+                                pcall(function() instance = game:GetService(expr:match("^game%.(%w+)$")) end)
+                        end
+                        if instance then
+                                local success, children = pcall(function() return instance:GetChildren() end)
+                                if success then
+                                        for _, child in ipairs(children) do
+                                                if child.Name:lower():find(prefix, 1, true) or prefix == "" then
+                                                        table.insert(completions, {
+                                                                name = child.Name,
+                                                                kind = "Instance",
+                                                                insertText = child.Name .. '")',
+                                                                detail = child.ClassName
+                                                        })
+                                                end
+                                        end
+                                end
+                            end
+                        return completions, wordStart
+                end
+        end
+        
+        -- game. -> Services
         if before:match("game%.$") then
                 for _, service in ipairs(IntellisenseData.Services) do
                         table.insert(completions, {name = service, kind = "Service", insertText = service})
                 end
                 return completions, wordStart
-        elseif before:match("workspace%.$") then
+        end
+        
+        -- workspace. -> children
+        if before:match("workspace%.$") then
                 local success, children = pcall(function() return workspace:GetChildren() end)
                 if success then
                         for _, child in ipairs(children) do
                                 table.insert(completions, {name = child.Name, kind = "Instance", insertText = child.Name, detail = child.ClassName})
                         end
                 end
+                -- Also add properties
+                for _, prop in ipairs(IntellisenseData.Properties) do
+                        table.insert(completions, {name = prop, kind = "Property", insertText = prop})
+                end
                 return completions, wordStart
-        elseif before:match(":%w-$") then
+        end
+        
+        -- : methods
+        if before:match(":%w-$") then
                 for _, method in ipairs(IntellisenseData.Methods) do
                         if prefix == "" or method:lower():find(prefix, 1, true) then
                                 table.insert(completions, {name = method, kind = "Method", insertText = method .. "()"})
                         end
                 end
                 return completions, wordStart
-        elseif before:match(":GetChildren%(%)[%s]*$") then
+        end
+        
+        -- . properties (after any expression ending with .)
+        if before:match("%.$") then
+                -- Add all properties
+                for _, prop in ipairs(IntellisenseData.Properties) do
+                        if prefix == "" or prop:lower():find(prefix, 1, true) then
+                                table.insert(completions, {name = prop, kind = "Property", insertText = prop})
+                        end
+                end
+                -- Add all methods
+                for _, method in ipairs(IntellisenseData.Methods) do
+                        if prefix == "" or method:lower():find(prefix, 1, true) then
+                                table.insert(completions, {name = method, kind = "Method", insertText = method .. "()"})
+                        end
+                end
+                return completions, wordStart
+        end
+        
+        -- GetChildren() results
+        if before:match(":GetChildren%(%)[%s]*$") then
                 local expr = before:match("(.+):GetChildren%(%)[%s]*$")
                 if expr then
                         local instance = nil
@@ -438,21 +582,27 @@ local function getCompletions(text, cursorPos)
         
         -- General completions (only if typing)
         if #prefix >= 1 then
+                -- Keywords
                 for _, kw in ipairs(IntellisenseData.Keywords) do
                         if kw:lower():find(prefix, 1, true) then
                                 table.insert(completions, {name = kw, kind = "Keyword", insertText = kw})
                         end
                 end
+                -- Builtins
                 for _, builtin in ipairs(IntellisenseData.Builtins) do
                         if builtin:lower():find(prefix, 1, true) then
                                 table.insert(completions, {name = builtin, kind = "Function", insertText = builtin .. "()"})
                         end
                 end
+                -- Globals
                 if ("game"):lower():find(prefix, 1, true) then
                         table.insert(completions, {name = "game", kind = "Global", insertText = "game"})
                 end
                 if ("workspace"):lower():find(prefix, 1, true) then
                         table.insert(completions, {name = "workspace", kind = "Global", insertText = "workspace"})
+                end
+                if ("script"):lower():find(prefix, 1, true) then
+                        table.insert(completions, {name = "script", kind = "Global", insertText = "script"})
                 end
         end
         
@@ -1235,6 +1385,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 saveFile()
         end
         
+        -- Intellisense navigation
         if State.intellisenseVisible then
                 if input.KeyCode == Enum.KeyCode.Down then
                         State.selectedIndex = math.min(State.selectedIndex + 1, #State.currentCompletions)
@@ -1243,10 +1394,32 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         State.selectedIndex = math.max(State.selectedIndex - 1, 1)
                         highlightIntellisenseItem()
                 elseif input.KeyCode == Enum.KeyCode.Tab or input.KeyCode == Enum.KeyCode.Return then
+                        -- Accept suggestion with Tab or Enter
                         applyCompletion()
                 elseif input.KeyCode == Enum.KeyCode.Escape then
                         hideIntellisense()
                 end
+        end
+end)
+
+-- Intercept Tab key before TextBox processes it
+UI.codeInput.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Tab then
+                if State.intellisenseVisible then
+                        -- Accept suggestion
+                        applyCompletion()
+                else
+                        -- Insert actual tab (4 spaces)
+                        local text = UI.codeInput.Text
+                        local cursorPos = UI.codeInput.CursorPosition
+                        local before = text:sub(1, cursorPos - 1)
+                        local after = text:sub(cursorPos)
+                        UI.codeInput.Text = before .. "    " .. after
+                        UI.codeInput.CursorPosition = cursorPos + 4
+                end
+        elseif input.KeyCode == Enum.KeyCode.Return and State.intellisenseVisible then
+                -- Accept suggestion with Enter
+                applyCompletion()
         end
 end)
 
