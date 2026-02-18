@@ -1,6 +1,8 @@
 --[[
 	Dracula Editor Utilities
 	Additional helper functions and developer tools
+	
+	Uses _G.DraculaTheme (loaded by Loader.lua)
 ]]
 
 local Utilities = {}
@@ -10,8 +12,8 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
--- Theme
-local Theme = require(script.Parent:WaitForChild("DraculaTheme"))
+-- Get Theme from _G (loaded by Loader.lua)
+local Theme = _G.DraculaTheme
 
 -- ============================================
 -- Text Processing Utilities
@@ -80,28 +82,6 @@ function Utilities.GetLineNumber(text, position)
 	return count
 end
 
--- Get position from line and column
-function Utilities.GetPositionFromLineColumn(text, line, column)
-	local currentLine = 1
-	local currentColumn = 1
-	
-	for i = 1, #text do
-		if currentLine == line and currentColumn == column then
-			return i
-		end
-		
-		local char = string.sub(text, i, i)
-		if char == "\n" then
-			currentLine = currentLine + 1
-			currentColumn = 1
-		else
-			currentColumn = currentColumn + 1
-		end
-	end
-	
-	return #text
-end
-
 -- Count indentation
 function Utilities.CountIndentation(line)
 	local count = 0
@@ -128,32 +108,6 @@ function Utilities.GetClosingBracket(openBracket)
 		["'"] = "'",
 	}
 	return brackets[openBracket]
-end
-
--- Check if should auto-close
-function Utilities.ShouldAutoClose(char, textBefore, textAfter)
-	if not Utilities.GetClosingBracket(char) then
-		return false
-	end
-	
-	-- Don't auto-close if we're in a string
-	local inString = false
-	local stringChar = nil
-	for i = 1, #textBefore do
-		local c = string.sub(textBefore, i, i)
-		if inString then
-			if c == stringChar and string.sub(textBefore, i - 1, i - 1) ~= "\\" then
-				inString = false
-			end
-		else
-			if c == '"' or c == "'" then
-				inString = true
-				stringChar = c
-			end
-		end
-	end
-	
-	return not inString
 end
 
 -- ============================================
@@ -240,45 +194,9 @@ end
 -- Code Formatting
 -- ============================================
 
--- Format code with proper indentation
-function Utilities.FormatCode(code)
-	local lines = {}
-	local indentLevel = 0
-	local tabWidth = 4
-	
-	for line in string.gmatch(code .. "\n", "([^\n]*)\n") do
-		-- Strip existing indentation
-		local stripped = line:match("^%s*(.*)") or ""
-		
-		-- Decrease indent for closing keywords
-		if stripped:match("^end") or 
-		   stripped:match("^else") or 
-		   stripped:match("^elseif") or 
-		   stripped:match("^until") or
-		   stripped:match("^}") then
-			indentLevel = math.max(0, indentLevel - 1)
-		end
-		
-		-- Add proper indentation
-		local newLine = string.rep("    ", indentLevel) .. stripped
-		table.insert(lines, newLine)
-		
-		-- Increase indent for opening keywords
-		if stripped:match("then%s*$") or 
-		   stripped:match("do%s*$") or 
-		   stripped:match("else%s*$") or 
-		   stripped:match("function%s*%(") or
-		   stripped:match("{%s*$") then
-			indentLevel = indentLevel + 1
-		end
-	end
-	
-	return table.concat(lines, "\n")
-end
-
 -- Get auto-indent for new line
 function Utilities.GetAutoIndent(text, cursorPosition)
-	local lineText, lineStart = Utilities.GetLineAtPosition(text, cursorPosition)
+	local lineText = Utilities.GetLineAtPosition(text, cursorPosition)
 	local stripped = lineText:match("^%s*(.*)") or ""
 	
 	-- Count current indentation
@@ -303,44 +221,12 @@ function Utilities.GetAutoIndent(text, cursorPosition)
 		indent = indent + 4
 	end
 	
-	-- Check if we need less indentation
-	if stripped:match("^end") or 
-	   stripped:match("^else") or 
-	   stripped:match("^elseif") or 
-	   stripped:match("^until") or
-	   stripped:match("^}") then
-		indent = math.max(0, indent - 4)
-	end
-	
 	return string.rep("    ", math.floor(indent / 4))
 end
 
 -- ============================================
 -- Code Analysis
 -- ============================================
-
--- Find all function definitions
-function Utilities.FindFunctions(code)
-	local functions = {}
-	
-	for name, params in code:gmatch("function%s+([%w_.:]+)%s*%(([^)]*)%)") do
-		table.insert(functions, {
-			name = name,
-			params = params,
-			type = "global"
-		})
-	end
-	
-	for name, params in code:gmatch("local%s+function%s+([%w_]+)%s*%(([^)]*)%)") do
-		table.insert(functions, {
-			name = name,
-			params = params,
-			type = "local"
-		})
-	end
-	
-	return functions
-end
 
 -- Find all variables
 function Utilities.FindVariables(code)
@@ -358,27 +244,7 @@ function Utilities.FindVariables(code)
 		end
 	end
 	
-	-- For loop variables
-	for var in code:gmatch("for%s+([%w_]+)%s*=") do
-		variables[var] = "loop"
-	end
-	
-	for var in code:gmatch("for%s+([%w_]+)%s*,%s*([%w_]+)%s+in") do
-		variables[var] = "loop"
-	end
-	
 	return variables
-end
-
--- Find all require statements
-function Utilities.FindRequires(code)
-	local requires = {}
-	
-	for modulePath in code:gmatch("require%s*%(([^)]+)%)") do
-		table.insert(requires, modulePath)
-	end
-	
-	return requires
 end
 
 -- ============================================
@@ -386,142 +252,9 @@ end
 -- ============================================
 
 Utilities.Templates = {
-	-- Function template
-	Function = [[
-function name(params)
-	-- body
-end
-]],
-	
-	-- Local function template
-	LocalFunction = [[
-local function name(params)
-	-- body
-end
-]],
-	
-	-- Module template
-	Module = [[
-local Module = {}
-
--- Private variables
-local privateVar = nil
-
--- Public methods
-function Module:Method()
-	
-end
-
-return Module
-]],
-	
-	-- Class template (OOP pattern)
-	Class = [[
-local ClassName = {}
-ClassName.__index = ClassName
-
-function ClassName.new(...)
-	local self = setmetatable({}, ClassName)
-	self:constructor(...)
-	return self
-end
-
-function ClassName:constructor()
-	
-end
-
-return ClassName
-]],
-	
-	-- Event handler template
-	EventHandler = [[
-local function onEvent()
-	
-end
-
-event:Connect(onEvent)
-]],
-	
-	-- Remote event template
-	RemoteEvent = [[
-local RemoteEvent = game.ReplicatedStorage:WaitForChild("RemoteEvent")
-
--- Fire from client
-RemoteEvent:FireServer(args)
-
--- Or handle on server
-RemoteEvent.OnServerEvent:Connect(function(player, ...)
-	
-end)
-]],
-	
-	-- Remote function template
-	RemoteFunction = [[
-local RemoteFunction = game.ReplicatedStorage:WaitForChild("RemoteFunction")
-
--- Invoke from client
-local result = RemoteFunction:InvokeServer(args)
-
--- Or handle on server
-RemoteFunction.OnServerInvoke = function(player, ...)
-	
-end
-]],
-}
-
--- ============================================
--- Snippets
--- ============================================
-
-Utilities.Snippets = {
-	-- Print with timestamp
-	tprint = {
-		trigger = "tprint",
-		body = 'print(string.format("[%s] %s", os.date("%H:%M:%S"), ${1:message}))',
-		description = "Print with timestamp"
-	},
-	
-	-- For pairs loop
-	pairs = {
-		trigger = "pairs",
-		body = "for ${1:key}, ${2:value} in pairs(${3:table}) do\n\t${0}\nend",
-		description = "For pairs loop"
-	},
-	
-	-- For ipairs loop
-	ipairs = {
-		trigger = "ipairs",
-		body = "for ${1:i}, ${2:value} in ipairs(${3:table}) do\n\t${0}\nend",
-		description = "For ipairs loop"
-	},
-	
-	-- Try-catch pattern
-	try = {
-		trigger = "try",
-		body = "local success, result = pcall(function()\n\t${0}\nend)\nif not success then\n\twarn(result)\nend",
-		description = "Pcall try-catch pattern"
-	},
-	
-	-- Instance.new
-	instance = {
-		trigger = "instance",
-		body = 'local ${1:name} = Instance.new("${2:Part}")\n${1:name}.Parent = ${3:workspace}',
-		description = "Create new Instance"
-	},
-	
-	-- Wait for child
-	wait = {
-		trigger = "wfc",
-		body = 'local ${1:child} = ${2:parent}:WaitForChild("${3:ChildName}")',
-		description = "WaitForChild"
-	},
-	
-	-- Find child
-	find = {
-		trigger = "ffc",
-		body = 'local ${1:child} = ${2:parent}:FindFirstChild("${3:ChildName}")',
-		description = "FindFirstChild"
-	},
+	Function = "function name(params)\n\t-- body\nend\n",
+	LocalFunction = "local function name(params)\n\t-- body\nend\n",
+	Module = "local Module = {}\n\nfunction Module:Method()\n\t\nend\n\nreturn Module\n",
 }
 
 -- ============================================
@@ -586,35 +319,6 @@ function Utilities.Tween(frame, properties, duration, easingStyle, easingDirecti
 	)
 	tween:Play()
 	return tween
-end
-
--- Fade in
-function Utilities.FadeIn(frame, duration)
-	frame.BackgroundTransparency = 1
-	return Utilities.Tween(frame, { BackgroundTransparency = 0 }, duration)
-end
-
--- Fade out
-function Utilities.FadeOut(frame, duration)
-	return Utilities.Tween(frame, { BackgroundTransparency = 1 }, duration)
-end
-
--- Slide in
-function Utilities.SlideIn(frame, direction, duration)
-	local startPos
-	
-	if direction == "left" then
-		startPos = UDim2.new(-1, 0, frame.Position.Y.Scale, frame.Position.Y.Offset)
-	elseif direction == "right" then
-		startPos = UDim2.new(1, 0, frame.Position.Y.Scale, frame.Position.Y.Offset)
-	elseif direction == "top" then
-		startPos = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset, -1, 0)
-	elseif direction == "bottom" then
-		startPos = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset, 1, 0)
-	end
-	
-	frame.Position = startPos
-	return Utilities.Tween(frame, { Position = frame.Position }, duration)
 end
 
 return Utilities
