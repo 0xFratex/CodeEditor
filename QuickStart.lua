@@ -981,11 +981,15 @@ local function triggerIntellisense()
         
         local cursorPos = UI.codeInput.CursorPosition
         local text = UI.codeInput.Text
-        if cursorPos <= 0 then cursorPos = 1 end
+        
+        if cursorPos <= 0 or cursorPos > #text + 1 then 
+                hideIntellisense()
+                return 
+        end
         
         local completions, wordStart = getCompletions(text, cursorPos)
         
-        if #completions > 0 then
+        if completions and #completions > 0 then
                 showIntellisense(completions, wordStart)
         else
                 hideIntellisense()
@@ -1197,7 +1201,7 @@ UI.codeInput:GetPropertyChangedSignal("Text"):Connect(function()
         updateHighlight()
         updateLineNumbers()
         updateCursor()
-        task.delay(0.05, triggerIntellisense)
+        triggerIntellisense()
 end)
 
 -- Cursor position changed
