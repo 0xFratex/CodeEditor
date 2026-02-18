@@ -853,7 +853,7 @@ local function updateCursor()
         local y = (lineNum - 1) * lineHeight
         
         UI.cursor.Position = UDim2.new(0, x, 0, y)
-        UI.cursor.Size = UDim2.new(0, 2, lineHeight)
+        UI.cursor.Size = UDim2.new(0, 2, 0, lineHeight)
 end
 
 -- Position cursor at end
