@@ -1,6 +1,8 @@
 --[[
 	Dracula Editor GUI
 	Main graphical user interface for the code editor
+	
+	Uses _G.DraculaTheme (loaded by Loader.lua)
 ]]
 
 local EditorGUI = {}
@@ -11,8 +13,8 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 
--- Theme
-local Theme = require(script.Parent:WaitForChild("DraculaTheme"))
+-- Get Theme from _G (loaded by Loader.lua)
+local Theme = _G.DraculaTheme
 
 -- Configuration
 EditorGUI.Config = {
@@ -87,10 +89,6 @@ function EditorGUI.CreateMainFrame(parent)
 	closeButton.TextSize = 20
 	closeButton.Parent = dragHandle
 	Theme.CreateCorner(closeButton, 4)
-	
-	closeButton.MouseButton1Click:Connect(function()
-		EditorGUI.Hide()
-	end)
 	
 	-- Dragging functionality
 	local dragging = false
@@ -323,22 +321,6 @@ function EditorGUI.CreateEditorArea(parent)
 	codeEditor.PlaceholderText = "-- Start coding in Dracula..."
 	codeEditor.PlaceholderColor3 = Theme.Colors.Comment
 	codeEditor.Parent = codeContainer
-	
-	-- Syntax highlighting overlay (RichText display)
-	local syntaxHighlight = Instance.new("TextLabel")
-	syntaxHighlight.Name = "SyntaxHighlight"
-	syntaxHighlight.Size = UDim2.new(1, -10, 1, 0)
-	syntaxHighlight.Position = UDim2.new(0, 55, 0, 0)
-	syntaxHighlight.BackgroundTransparency = 1
-	syntaxHighlight.TextColor3 = Theme.Colors.Foreground
-	syntaxHighlight.Font = Theme.Fonts.Mono
-	syntaxHighlight.TextSize = Theme.FontSizes.Code
-	syntaxHighlight.TextXAlignment = Enum.TextXAlignment.Left
-	syntaxHighlight.TextYAlignment = Enum.TextYAlignment.Top
-	syntaxHighlight.RichText = true
-	syntaxHighlight.Text = ""
-	syntaxHighlight.Visible = false
-	syntaxHighlight.Parent = codeContainer
 	
 	-- Intellisense dropdown
 	local intellisense = Instance.new("Frame")
@@ -576,6 +558,7 @@ function EditorGUI.GetKindIcon(kind)
 		Module = "📦",
 		Instance = "🎮",
 		Builtin = "🔧",
+		Service = "⚙️",
 	}
 	return icons[kind] or "📄"
 end
@@ -601,6 +584,7 @@ function EditorGUI.GetKindColor(kind)
 		Module = Theme.Colors.Class,
 		Instance = Theme.Colors.Accent,
 		Builtin = Theme.Colors.BuiltIn,
+		Service = Theme.Colors.Info,
 	}
 	return colors[kind] or Theme.Colors.Foreground
 end
