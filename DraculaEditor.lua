@@ -3,8 +3,7 @@
 	A sophisticated code editor for Roblox with smart intellisense,
 	file management, and code execution capabilities.
 	
-	Author: Dracula Editor Team
-	Version: 1.0.0
+	Loads dependencies from _G (set by Loader.lua)
 ]]
 
 local DraculaEditor = {}
@@ -15,13 +14,14 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
--- Modules
-local Theme = require(script:WaitForChild("DraculaTheme"))
-local FileSystem = require(script:WaitForChild("FileSystem"))
-local Intellisense = require(script:WaitForChild("Intellisense"))
-local EditorGUI = require(script:WaitForChild("EditorGUI"))
-local CodeRunner = require(script:WaitForChild("CodeRunner"))
-local SyntaxHighlighter = require(script:WaitForChild("SyntaxHighlighter"))
+-- Get modules from _G (loaded by Loader.lua)
+local Theme = _G.DraculaTheme
+local FileSystem = _G.FileSystem
+local Intellisense = _G.Intellisense
+local EditorGUI = _G.EditorGUI
+local CodeRunner = _G.CodeRunner
+local SyntaxHighlighter = _G.SyntaxHighlighter
+local EditorUtilities = _G.EditorUtilities
 
 -- Configuration
 DraculaEditor.Config = {
@@ -531,8 +531,14 @@ function DraculaEditor.ShowFileContextMenu(file, item)
 	menu.BorderSizePixel = 0
 	menu.ZIndex = 200
 	menu.Parent = DraculaEditor.UI.MainFrame
-	Theme.CreateStroke(menu, Theme.Colors.Border)
-	Theme.CreateCorner(menu, 4)
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.Colors.Border
+	stroke.Parent = menu
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = menu
 	
 	-- Menu items
 	local options = {
@@ -636,7 +642,6 @@ function DraculaEditor.ShowIntellisense(completions, context)
 	end
 	
 	-- Position intellisense
-	-- (In a real implementation, would calculate based on cursor position)
 	intellisense.Position = UDim2.new(0, 100, 0, 200)
 	intellisense.Visible = true
 	
@@ -801,7 +806,7 @@ function DraculaEditor.StartAutoSave()
 	
 	task.spawn(function()
 		while true do
-			wait(DraculaEditor.Config.AutoSaveInterval)
+			task.wait(DraculaEditor.Config.AutoSaveInterval)
 			
 			if DraculaEditor.State.ActiveFile and DraculaEditor.State.ActiveFile.IsModified then
 				DraculaEditor.SaveCurrentFile()
