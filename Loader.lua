@@ -621,7 +621,7 @@ local function createEditor()
         newFolderBtn.BackgroundColor3 = Theme.Colors.Button
         newFolderBtn.Text = "📁"
         newFolderBtn.TextColor3 = Theme.Colors.Foreground
-        newFileBtn.Font = Theme.Fonts.UI
+        newFolderBtn.Font = Theme.Fonts.UI
         newFolderBtn.TextSize = 12
         newFolderBtn.Parent = sidebarHeader
         createCorner(newFolderBtn, 4)
