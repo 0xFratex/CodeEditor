@@ -922,10 +922,16 @@ local function showIntellisense(completions, wordStart)
         local height = math.min(#completions * 22, 150)
         UI.intellisense.Size = UDim2.new(0, 220, 0, height)
         
+        -- Position intellisense near cursor
         local cursorX = UI.cursor.Position.X.Offset
         local cursorY = UI.cursor.Position.Y.Offset
-        UI.intellisense.Position = UDim2.new(0, math.min(cursorX, UI.codeContainer.AbsoluteSize.X - 230), 0, cursorY + getLineHeight())
+        local lineHeight = getLineHeight()
         
+        -- Make sure intellisense is visible within bounds
+        local posX = math.max(0, math.min(cursorX, 400))
+        local posY = cursorY + lineHeight + 5
+        
+        UI.intellisense.Position = UDim2.new(0, posX, 0, posY)
         UI.intellisenseList.CanvasSize = UDim2.new(0, 0, 0, #completions * 22)
         UI.intellisense.Visible = true
         State.intellisenseVisible = true
@@ -1190,6 +1196,7 @@ end)
 UI.codeInput:GetPropertyChangedSignal("Text"):Connect(function()
         updateHighlight()
         updateLineNumbers()
+        updateCursor()
         task.delay(0.05, triggerIntellisense)
 end)
 
