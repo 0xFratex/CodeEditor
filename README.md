@@ -2,6 +2,24 @@
 
 A sophisticated, feature-rich code editor built entirely within Roblox, featuring a beautiful dark Dracula theme, smart intellisense that adapts to your game environment, local file persistence, and code execution capabilities.
 
+## 🚀 Quick Start (loadstring)
+
+The easiest way to use Dracula Editor is via `loadstring` with `game:HttpGet`:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/Loader.lua"))()
+```
+
+**One-line setup:** Just paste this into a LocalScript in `StarterPlayerScripts` and press **F8** to toggle the editor!
+
+### Alternative: QuickStart (Single File)
+
+For a simpler, single-file version:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/QuickStart.lua"))()
+```
+
 ## ✨ Features
 
 ### 🎨 Beautiful Dracula Theme
@@ -64,23 +82,6 @@ The standout feature of Dracula Editor - context-aware code completion:
 - Multiple file tabs
 - Find and Replace (coming soon)
 
-## 📦 Installation
-
-### Option 1: Direct Import
-1. Download the `DraculaEditor` folder
-2. Place it in `ReplicatedStorage` or `StarterPlayerScripts`
-3. Create a LocalScript to initialize:
-
-```lua
-local DraculaEditor = require(game.ReplicatedStorage.DraculaEditor)
-DraculaEditor.Initialize()
-DraculaEditor.Show()
-```
-
-### Option 2: Quick Start
-1. Place `ExampleScript.lua` in `StarterPlayerScripts`
-2. The editor will auto-load when you play
-
 ## 🎹 Keyboard Shortcuts
 
 | Shortcut | Action |
@@ -92,6 +93,30 @@ DraculaEditor.Show()
 | Ctrl+F | Find/Replace |
 | Escape | Close Intellisense |
 | Tab/Enter | Accept Suggestion |
+
+## 📦 Installation Methods
+
+### Method 1: loadstring (Recommended)
+```lua
+-- In a LocalScript in StarterPlayerScripts:
+loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/Loader.lua"))()
+```
+
+### Method 2: Direct Import
+1. Copy all `.lua` files from the repository
+2. Create a folder in `ReplicatedStorage` named `DraculaEditor`
+3. Paste all files there
+4. Create a LocalScript:
+```lua
+local DraculaEditor = require(game.ReplicatedStorage.DraculaEditor)
+DraculaEditor.QuickStart()
+```
+
+### Method 3: QuickStart (Single File)
+```lua
+-- Simplest option - single file load
+loadstring(game:HttpGet("https://raw.githubusercontent.com/0xFratex/CodeEditor/main/QuickStart.lua"))()
+```
 
 ## 📖 API Reference
 
@@ -137,24 +162,13 @@ DraculaEditor.LogOutput(message, messageType)
 -- messageType: "Info", "Success", "Warning", "Error"
 ```
 
-### Utility Functions
-```lua
--- Refresh file list sidebar
-DraculaEditor.RefreshFileList()
-
--- Update line numbers
-DraculaEditor.UpdateLineNumbers()
-
--- Get current state
-local activeFile = DraculaEditor.State.ActiveFile
-local openFiles = DraculaEditor.State.OpenFiles
-```
-
 ## 🔧 Module Structure
 
 ```
-DraculaEditor/
-├── init.lua              -- Main loader
+CodeEditor/
+├── Loader.lua            -- Main loader (use this with loadstring)
+├── QuickStart.lua        -- Single-file version
+├── init.lua              -- Module entry point
 ├── DraculaEditor.lua     -- Main controller
 ├── DraculaTheme.lua      -- Color scheme & UI constants
 ├── FileSystem.lua        -- File management & DataStore
@@ -162,7 +176,8 @@ DraculaEditor/
 ├── EditorGUI.lua         -- GUI components
 ├── CodeRunner.lua        -- Code execution engine
 ├── SyntaxHighlighter.lua -- Syntax highlighting
-├── ExampleScript.lua     -- Usage example
+├── EditorUtilities.lua   -- Helper utilities
+├── ExampleScript.lua     -- Usage examples
 └── README.md             -- Documentation
 ```
 
@@ -217,7 +232,6 @@ The code runner includes sandbox protection:
 - [ ] Find and Replace functionality
 - [ ] Code folding
 - [ ] Multiple selection
-- [ ] Git integration (for team projects)
 - [ ] Custom themes
 - [ ] Plugin system
 - [ ] Debugger integration
@@ -226,12 +240,11 @@ The code runner includes sandbox protection:
 
 MIT License - Feel free to use and modify for your Roblox projects!
 
-## 🤝 Contributing
+## 🔗 Links
 
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+- **Repository**: https://github.com/0xFratex/CodeEditor
+- **Raw Loader**: https://raw.githubusercontent.com/0xFratex/CodeEditor/main/Loader.lua
+- **QuickStart**: https://raw.githubusercontent.com/0xFratex/CodeEditor/main/QuickStart.lua
 
 ---
 
